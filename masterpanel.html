@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ServTrack — Panel Maestro</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050810;--s:#0d1526;--c:#111e35;--b:#1a2d4a;--b2:#233557;
+  --ac:#38bdf8;--gr:#34d399;--am:#fbbf24;--rd:#f87171;--pu:#a78bfa;--or:#fb923c;
+  --t:#e2e8f0;--m:#64748b;--fn:'Syne',sans-serif;--mo:'JetBrains Mono',monospace}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fn);background:var(--bg);color:var(--t);min-height:100vh}
+button,input,select,textarea{font-family:var(--fn)}
+a{color:var(--ac);text-decoration:none}
+
+/* LAYOUT */
+.wrap{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--s);border-right:1px solid var(--b);padding:24px 0;
+  display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.logo{padding:0 20px 20px;border-bottom:1px solid var(--b);margin-bottom:12px}
+.logo-name{font-size:1.1rem;font-weight:800;color:var(--t)}
+.logo-tag{font-size:.68rem;color:var(--m);font-family:var(--mo)}
+.nav-item{padding:10px 20px;display:flex;align-items:center;gap:10px;
+  font-size:.83rem;font-weight:600;color:var(--m);cursor:pointer;
+  border-left:2px solid transparent;transition:all .2s}
+.nav-item:hover{color:var(--t);background:rgba(56,189,248,.05)}
+.nav-item.active{color:var(--ac);border-left-color:var(--ac);background:rgba(56,189,248,.08)}
+.nav-ico{font-size:1rem;width:20px;text-align:center}
+.sidebar-foot{margin-top:auto;padding:16px 20px;font-size:.72rem;color:var(--m);border-top:1px solid var(--b)}
+
+/* MAIN */
+.main{padding:28px;overflow-y:auto}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:1.4rem;font-weight:800;margin-bottom:6px;
+  background:linear-gradient(120deg,var(--t),var(--ac));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.page-sub{font-size:.82rem;color:var(--m);margin-bottom:24px}
+
+/* STATS ROW */
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px}
+.sc{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc.a::before{background:var(--gr)}.sc.p::before{background:var(--am)}.sc.v::before{background:var(--rd)}
+.sc.b::before{background:var(--pu)}.sc.t::before{background:var(--ac)}
+.sc-val{font-size:1.6rem;font-weight:800}
+.sc.a .sc-val{color:var(--gr)}.sc.p .sc-val{color:var(--am)}.sc.v .sc-val{color:var(--rd)}
+.sc.b .sc-val{color:var(--pu)}.sc.t .sc-val{color:var(--ac)}
+.sc-lbl{font-size:.7rem;color:var(--m);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+
+/* TABLE */
+.tbl-wrap{background:var(--c);border:1px solid var(--b);border-radius:14px;overflow:hidden}
+.tbl-head{padding:14px 18px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between}
+.tbl-title{font-size:.95rem;font-weight:700}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 14px;text-align:left;font-size:.7rem;font-weight:700;
+  color:var(--m);text-transform:uppercase;letter-spacing:.08em;
+  border-bottom:1px solid var(--b);background:var(--s)}
+td{padding:11px 14px;font-size:.82rem;border-bottom:1px solid rgba(30,45,71,.5)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(56,189,248,.03)}
+.mono{font-family:var(--mo);font-size:.75rem;color:var(--ac)}
+
+/* BADGE */
+.badge{font-size:.62rem;font-weight:800;padding:3px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em}
+.bA{background:rgba(52,211,153,.12);color:var(--gr)}
+.bS{background:rgba(251,191,36,.12);color:var(--am)}
+.bV{background:rgba(248,113,113,.12);color:var(--rd)}
+.bB{background:rgba(100,116,139,.12);color:var(--m)}
+.bP{background:rgba(167,139,250,.12);color:var(--pu)}
+.bG{background:rgba(251,191,36,.08);color:var(--or);border:1px solid rgba(251,191,36,.3)}
+
+/* ACTIONS */
+.act-btn{padding:5px 10px;border-radius:7px;font-size:.72rem;font-weight:700;
+  cursor:pointer;border:none;transition:all .18s}
+.act-btn:active{transform:scale(.94)}
+.ab-g{background:rgba(52,211,153,.15);color:var(--gr)}
+.ab-r{background:rgba(248,113,113,.15);color:var(--rd)}
+.ab-y{background:rgba(251,191,36,.15);color:var(--am)}
+.ab-p{background:rgba(167,139,250,.15);color:var(--pu)}
+.ab-b{background:rgba(56,189,248,.15);color:var(--ac)}
+
+/* FORM */
+.form-card{background:var(--c);border:1px solid var(--b);border-radius:14px;padding:24px;max-width:600px}
+.fc-title{font-size:1rem;font-weight:800;margin-bottom:18px}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:.7rem;font-weight:700;color:var(--m);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.fi,.fsl,.fta{width:100%;background:var(--s);border:1px solid var(--b);
+  border-radius:8px;padding:10px 13px;color:var(--t);font-size:.88rem;transition:border-color .2s}
+.fi:focus,.fsl:focus,.fta:focus{border-color:var(--ac);outline:none}
+.fsl option{background:var(--s)}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;
+  border-radius:9px;font-size:.86rem;font-weight:700;cursor:pointer;border:none;transition:all .18s}
+.btn:active{transform:scale(.96)}
+.btn-p{background:var(--ac);color:#050810}
+.btn-g{background:var(--gr);color:#050810}
+.btn-rd{background:rgba(248,113,113,.15);color:var(--rd);border:1px solid rgba(248,113,113,.3)}
+.btn-ghost{background:var(--s);color:var(--t);border:1px solid var(--b)}
+
+/* KEY BOX */
+.key-box{background:var(--s);border:1px solid var(--b2);border-radius:10px;
+  padding:14px;margin-top:16px;display:none}
+.key-box.show{display:block}
+.key-label{font-size:.7rem;color:var(--m);font-weight:700;text-transform:uppercase;margin-bottom:6px}
+.key-val{font-family:var(--mo);font-size:1rem;color:var(--ac);
+  background:rgba(56,189,248,.08);padding:10px 14px;border-radius:8px;
+  word-break:break-all;cursor:pointer;border:1px solid rgba(56,189,248,.2)}
+.key-val:hover{background:rgba(56,189,248,.15)}
+.perp-val{font-family:var(--mo);font-size:.9rem;color:var(--pu);
+  background:rgba(167,139,250,.08);padding:10px 14px;border-radius:8px;
+  word-break:break-all;margin-top:8px;border:1px solid rgba(167,139,250,.2)}
+
+/* LOG */
+.log-item{padding:10px 14px;border-bottom:1px solid rgba(30,45,71,.5);display:flex;gap:12px;align-items:flex-start}
+.log-item:last-child{border-bottom:none}
+.log-time{font-family:var(--mo);font-size:.7rem;color:var(--m);white-space:nowrap;flex-shrink:0}
+.log-evt{font-size:.78rem;font-weight:700}
+.log-det{font-size:.75rem;color:var(--m)}
+.log-ok{color:var(--gr)}.log-warn{color:var(--am)}.log-err{color:var(--rd)}.log-info{color:var(--ac)}
+
+/* TOAST */
+#toasts{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:11px 16px;border-radius:10px;font-size:.83rem;font-weight:600;
+  animation:tin .25s ease;min-width:240px}
+@keyframes tin{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.t-ok{background:#052e16;border:1px solid var(--gr);color:var(--gr)}
+.t-er{background:#1c0505;border:1px solid var(--rd);color:var(--rd)}
+.t-in{background:#0c1f33;border:1px solid var(--ac);color:var(--ac)}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  z-index:500;display:none;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--c);border:1px solid var(--b);border-radius:16px;
+  padding:24px;width:100%;max-width:480px;animation:min .25s ease}
+@keyframes min{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-size:1rem;font-weight:800;margin-bottom:16px}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+/* SEARCH */
+.search-bar{display:flex;align-items:center;gap:10px;background:var(--s);
+  border:1px solid var(--b);border-radius:8px;padding:8px 12px;margin-bottom:16px}
+.search-bar input{background:none;border:none;color:var(--t);font-size:.88rem;flex:1;outline:none}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<div class="wrap">
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-name">⚡ ServTrack</div>
+    <div class="logo-tag">PANEL MAESTRO v2.0</div>
+  </div>
+  <div class="nav-item active" onclick="showPage('dash',this)"><span class="nav-ico">📊</span>Dashboard</div>
+  <div class="nav-item" onclick="showPage('licencias',this)"><span class="nav-ico">🔑</span>Licencias</div>
+  <div class="nav-item" onclick="showPage('nueva',this)"><span class="nav-ico">➕</span>Nueva Licencia</div>
+  <div class="nav-item" onclick="showPage('log',this)"><span class="nav-ico">📜</span>Registro de Eventos</div>
+  <div class="nav-item" onclick="showPage('docs',this)"><span class="nav-ico">📖</span>Documentación</div>
+  <div class="sidebar-foot">Panel Maestro privado.<br>No compartir esta URL.</div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- ── DASHBOARD ── -->
+<div class="page active" id="page-dash">
+  <div class="page-title">Dashboard</div>
+  <div class="page-sub" id="dashDate"></div>
+  <div class="stats">
+    <div class="sc t"><div class="sc-val" id="dT">—</div><div class="sc-lbl">Total</div></div>
+    <div class="sc a"><div class="sc-val" id="dA">—</div><div class="sc-lbl">Activas</div></div>
+    <div class="sc p"><div class="sc-val" id="dS">—</div><div class="sc-lbl">Suspendidas</div></div>
+    <div class="sc v"><div class="sc-val" id="dV">—</div><div class="sc-lbl">Vencidas</div></div>
+    <div class="sc b"><div class="sc-val" id="dP">—</div><div class="sc-lbl">Perpetuas</div></div>
+  </div>
+  <div class="tbl-wrap">
+    <div class="tbl-head">
+      <div class="tbl-title">Próximas a vencer (7 días)</div>
+      <button class="btn btn-ghost" style="font-size:.78rem;padding:7px 12px" onclick="loadDash()">↻ Refrescar</button>
+    </div>
+    <table><thead><tr><th>Cliente</th><th>Plan</th><th>Vence</th><th>Días</th><th>Estado</th></tr></thead>
+    <tbody id="dashProximas"></tbody></table>
+  </div>
+</div>
+
+<!-- ── LICENCIAS ── -->
+<div class="page" id="page-licencias">
+  <div class="page-title">Licencias</div>
+  <div class="page-sub">Administra todas las instalaciones activas.</div>
+  <div class="search-bar">
+    <span>🔍</span>
+    <input type="text" id="licSearch" placeholder="Buscar cliente, email, clave..." oninput="filterLic(this.value)">
+  </div>
+  <div class="tbl-wrap">
+    <div class="tbl-head">
+      <div class="tbl-title">Todas las licencias</div>
+      <button class="btn btn-ghost" style="font-size:.78rem;padding:7px 12px" onclick="loadLicencias()">↻ Refrescar</button>
+    </div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr>
+        <th>Clave</th><th>Cliente</th><th>Plan</th><th>Estado</th>
+        <th>Vence</th><th>Últ. Verif.</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="licTable"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── NUEVA LICENCIA ── -->
+<div class="page" id="page-nueva">
+  <div class="page-title">Nueva Licencia</div>
+  <div class="page-sub">Crea una licencia para un nuevo cliente.</div>
+  <div class="form-card">
+    <div class="fc-title">📋 Datos del Cliente</div>
+    <div class="fg"><label class="fl">Nombre / Negocio *</label><input class="fi" id="f_client" placeholder="Taller Electrónico García"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="f_email" type="email" placeholder="cliente@mail.com"></div>
+      <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="f_phone" type="tel" placeholder="5512345678"></div>
+    </div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">Plan *</label>
+        <select class="fsl" id="f_plan" onchange="onPlanChange()">
+          <option value="MENSUAL">📅 Mensual</option>
+          <option value="ANUAL">📆 Anual</option>
+          <option value="PERPETUO">♾️ Perpetuo (pago único)</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">Precio cobrado ($)</label><input class="fi" id="f_price" type="number" placeholder="0.00"></div>
+    </div>
+    <div class="fg"><label class="fl">Días de gracia (tras vencer)</label><input class="fi" id="f_grace" type="number" value="3" min="0" max="30"></div>
+    <div class="fg"><label class="fl">Notas internas</label><textarea class="fta" id="f_notes" rows="2" placeholder="Información adicional..."></textarea></div>
+    <button class="btn btn-p" onclick="crearLicencia()">🔑 Generar Licencia</button>
+
+    <div class="key-box" id="resultBox">
+      <div class="key-label">✅ Licencia generada — Entrega esto al cliente:</div>
+      <div class="key-val" id="rKey" onclick="copyText(this.textContent)" title="Clic para copiar"></div>
+      <div id="rPerpBox" style="display:none">
+        <div class="key-label" style="margin-top:12px">♾️ Llave Perpetua (guarda esta, es para modo offline):</div>
+        <div class="perp-val" id="rPerpKey" onclick="copyText(this.textContent)" title="Clic para copiar"></div>
+      </div>
+      <p style="font-size:.75rem;color:var(--m);margin-top:10px">💡 Haz clic en la clave para copiarla</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOG ── -->
+<div class="page" id="page-log">
+  <div class="page-title">Registro de Eventos</div>
+  <div class="page-sub">Historial de accesos y cambios de estado.</div>
+  <div class="tbl-wrap">
+    <div class="tbl-head">
+      <div class="tbl-title">Últimos eventos</div>
+      <button class="btn btn-ghost" style="font-size:.78rem;padding:7px 12px" onclick="loadLog()">↻ Refrescar</button>
+    </div>
+    <div id="logList" style="max-height:600px;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ── DOCS ── -->
+<div class="page" id="page-docs">
+  <div class="page-title">Documentación</div>
+  <div class="page-sub">Referencia rápida del sistema de licencias.</div>
+  <div class="form-card" style="max-width:700px">
+    <div class="fc-title">🔄 Flujo del sistema</div>
+    <p style="font-size:.85rem;line-height:1.8;color:var(--t)">
+      <b style="color:var(--ac)">1. Al iniciar la app cliente</b> → verifica la licencia contra este servidor cada 24h.<br>
+      <b style="color:var(--am)">2. Si hay conexión</b> → respuesta en tiempo real (ACTIVA / SUSPENDIDA / VENCIDA).<br>
+      <b style="color:var(--gr)">3. Si no hay internet</b> → usa el caché local (válido 72h desde la última verificación).<br>
+      <b style="color:var(--pu)">4. Licencia PERPETUA</b> → una vez activada con la PerpetualKey, no necesita conexión nunca más.<br>
+      <b style="color:var(--rd)">5. Bloqueo</b> → estado BLOQUEADA tiene efecto inmediato (bloqueará en la próxima verificación).
+    </p>
+    <div style="margin-top:20px">
+      <div class="fc-title">📋 Estados de licencia</div>
+      <table style="font-size:.82rem">
+        <tr><td><span class="badge bA">ACTIVA</span></td><td style="padding:6px 14px">Funcionamiento normal</td></tr>
+        <tr><td><span class="badge bS">SUSPENDIDA</span></td><td style="padding:6px 14px">Bloqueada por falta de pago, mensaje al cliente</td></tr>
+        <tr><td><span class="badge bV">VENCIDA</span></td><td style="padding:6px 14px">Expiró el período + días de gracia</td></tr>
+        <tr><td><span class="badge bB">BLOQUEADA</span></td><td style="padding:6px 14px">Bloqueo total sin mensaje (fraude, etc.)</td></tr>
+        <tr><td><span class="badge bP">PERPETUA</span></td><td style="padding:6px 14px">Sin vencimiento, puede funcionar offline</td></tr>
+      </table>
+    </div>
+    <div style="margin-top:20px">
+      <div class="fc-title">⚙️ URLs de la API</div>
+      <div style="background:var(--s);border:1px solid var(--b);border-radius:8px;padding:12px;font-family:var(--mo);font-size:.75rem;color:var(--ac);line-height:2">
+        GET ?action=verify&key=SRVT-XXXX... → Verificar licencia (público)<br>
+        GET ?action=list&token=TU_TOKEN → Listar licencias<br>
+        GET ?action=suspend&key=X&token=T&reason=Y → Suspender<br>
+        GET ?action=activate&key=X&token=T → Activar<br>
+        GET ?action=block&key=X&token=T → Bloquear total<br>
+        GET ?action=mkperp&key=X&token=T → Convertir a perpetua
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- MODAL ACCIÓN -->
+<div class="modal-ov" id="modalAct">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Confirmar acción</div>
+    <p id="modalMsg" style="font-size:.85rem;color:var(--m);margin-bottom:12px"></p>
+    <div class="fg"><label class="fl">Razón / Nota</label>
+      <input class="fi" id="modalReason" placeholder="Ej: Pago pendiente, fraude detectado...">
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn" id="modalConfirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── ESTADO ─────────────────────────────────────────────────
+let allLicencias = [];
+let modalAction  = null;
+let modalKey     = null;
+
+// ── NAVEGACIÓN ─────────────────────────────────────────────
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  el.classList.add('active');
+  if(id==='dash')      loadDash();
+  if(id==='licencias') loadLicencias();
+  if(id==='log')       loadLog();
+}
+
+// ── TOAST ──────────────────────────────────────────────────
+function toast(msg, type='in', dur=3500) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className=`toast t-${type}`;t.textContent=msg;c.appendChild(t);
+  setTimeout(()=>t.remove(),dur);
+}
+function copyText(txt) {
+  navigator.clipboard?.writeText(txt).then(()=>toast('Copiado al portapapeles ✓','ok'));
+}
+
+// ── API ────────────────────────────────────────────────────
+// Método directo para llamadas desde panel maestro via google.script.run
+function masterApi(action, extra={}) {
+  return new Promise((res,rej) => {
+    google.script.run
+      .withSuccessHandler(res)
+      .withFailureHandler(rej)
+      .masterCall(action, extra);
+  });
+}
+
+// ── onPlanChange: muestra/oculta campo días gracia según plan ──────
+function onPlanChange() {
+  const plan = document.getElementById('f_plan').value;
+  const graceField = document.getElementById('f_grace').closest('.fg');
+  // Perpetuo no necesita días de gracia
+  if (graceField) graceField.style.opacity = plan === 'PERPETUO' ? '0.4' : '1';
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────
+async function loadDash() {
+  document.getElementById('dashDate').textContent =
+    new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  try {
+    const r = await masterApi('list');
+    if(!r.ok) return;
+    const d = r.data;
+    document.getElementById('dT').textContent = d.length;
+    document.getElementById('dA').textContent = d.filter(x=>x.Estado==='ACTIVA').length;
+    document.getElementById('dS').textContent = d.filter(x=>x.Estado==='SUSPENDIDA').length;
+    document.getElementById('dV').textContent = d.filter(x=>x.Estado==='VENCIDA').length;
+    document.getElementById('dP').textContent = d.filter(x=>x.Estado==='PERPETUA').length;
+
+    const now = new Date();
+    const prox = d.filter(x=>{
+      if(!x.FechaVence||x.Estado==='PERPETUA') return false;
+      const dias = Math.ceil((new Date(x.FechaVence)-now)/86400000);
+      return dias>=0 && dias<=7;
+    }).sort((a,b)=>new Date(a.FechaVence)-new Date(b.FechaVence));
+
+    const tb = document.getElementById('dashProximas');
+    tb.innerHTML = prox.length ? prox.map(x=>{
+      const dias = Math.ceil((new Date(x.FechaVence)-now)/86400000);
+      return `<tr><td><b>${x.Cliente}</b><br><span style="color:var(--m);font-size:.75rem">${x.Email||''}</span></td>
+        <td>${x.Plan}</td><td style="font-family:var(--mo);font-size:.78rem">${fDate(x.FechaVence)}</td>
+        <td><b style="color:${dias<=3?'var(--rd)':'var(--am)'}">${dias}d</b></td>
+        <td>${badge(x.Estado)}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--m);padding:20px">Sin vencimientos próximos 🎉</td></tr>';
+
+    allLicencias = d;
+  } catch(e){ toast('Error al cargar datos','er'); }
+}
+
+// ── LICENCIAS ──────────────────────────────────────────────
+async function loadLicencias() {
+  try {
+    const r = await masterApi('list');
+    if(!r.ok) return toast('Error al cargar','er');
+    allLicencias = r.data;
+    renderLicTable(allLicencias);
+  } catch(e){ toast('Error de conexión','er'); }
+}
+
+function renderLicTable(data) {
+  document.getElementById('licTable').innerHTML = data.map(x => `
+    <tr>
+      <td><span class="mono" onclick="copyText('${x.LicenseKey}')" title="Clic para copiar" style="cursor:pointer">${x.LicenseKey}</span></td>
+      <td><b>${x.Cliente}</b><br><span style="color:var(--m);font-size:.73rem">${x.Email||''}</span></td>
+      <td>${x.Plan}</td>
+      <td>${badge(x.Estado)}</td>
+      <td style="font-family:var(--mo);font-size:.75rem">${x.FechaVence?fDate(x.FechaVence):'♾️ Perpetuo'}</td>
+      <td style="font-family:var(--mo);font-size:.72rem;color:var(--m)">${x.UltimaVerif?fDate(x.UltimaVerif):'—'}</td>
+      <td>
+        <div style="display:flex;gap:5px;flex-wrap:wrap">
+          ${x.Estado!=='ACTIVA'&&x.Estado!=='PERPETUA' ? `<button class="act-btn ab-g" onclick="doAction('activate','${x.LicenseKey}','${x.Cliente}')">✅ Activar</button>` : ''}
+          ${x.Estado==='ACTIVA' ? `<button class="act-btn ab-y" onclick="doAction('suspend','${x.LicenseKey}','${x.Cliente}')">⏸ Suspender</button>` : ''}
+          ${x.Estado!=='BLOQUEADA'&&x.Estado!=='PERPETUA' ? `<button class="act-btn ab-r" onclick="doAction('block','${x.LicenseKey}','${x.Cliente}')">🚫 Bloquear</button>` : ''}
+          ${x.Estado!=='PERPETUA' ? `<button class="act-btn ab-p" onclick="doAction('mkperp','${x.LicenseKey}','${x.Cliente}')">♾️ Perpetua</button>` : '<span style="color:var(--pu);font-size:.72rem">♾️ Perpetua</span>'}
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterLic(q) {
+  const s = q.toLowerCase();
+  renderLicTable(allLicencias.filter(x=>
+    String(x.Cliente).toLowerCase().includes(s)||
+    String(x.Email).toLowerCase().includes(s)||
+    String(x.LicenseKey).toLowerCase().includes(s)
+  ));
+}
+
+// ── CREAR LICENCIA ─────────────────────────────────────────
+async function crearLicencia() {
+  const client = document.getElementById('f_client').value.trim();
+  const plan   = document.getElementById('f_plan').value;
+  if(!client) return toast('Ingresa el nombre del cliente','er');
+  try {
+    const r = await masterApi('create',{
+      client, plan,
+      email: document.getElementById('f_email').value.trim(),
+      phone: document.getElementById('f_phone').value.trim(),
+      price: document.getElementById('f_price').value,
+      grace: document.getElementById('f_grace').value||3,
+      notes: document.getElementById('f_notes').value.trim()
+    });
+    if(!r.ok) return toast('Error: '+r.error,'er');
+    toast(`Licencia creada: ${r.key}`,'ok',5000);
+    const box = document.getElementById('resultBox');
+    box.classList.add('show');
+    document.getElementById('rKey').textContent = r.key;
+    const perpBox = document.getElementById('rPerpBox');
+    if(r.perpetualKey) {
+      perpBox.style.display='block';
+      document.getElementById('rPerpKey').textContent = r.perpetualKey;
+    } else { perpBox.style.display='none'; }
+  } catch(e){ toast('Error de conexión','er'); }
+}
+
+// ── ACCIONES ──────────────────────────────────────────────
+function doAction(action, key, client) {
+  modalKey = key; modalAction = action;
+  const titles = {activate:'✅ Activar licencia',suspend:'⏸ Suspender licencia',block:'🚫 Bloquear licencia',mkperp:'♾️ Convertir a Perpetua'};
+  const msgs   = {
+    activate: `Reactivar la licencia de ${client}.`,
+    suspend:  `Suspender ${client} (mensaje de pago). El cliente verá aviso al entrar.`,
+    block:    `BLOQUEAR ${client} completamente. El acceso queda inhabilitado sin mensaje.`,
+    mkperp:   `Convertir ${client} a licencia PERPETUA. Se desconectará del control remoto.`
+  };
+  document.getElementById('modalTitle').textContent = titles[action];
+  document.getElementById('modalMsg').textContent   = msgs[action];
+  document.getElementById('modalReason').value = '';
+  const btn = document.getElementById('modalConfirm');
+  btn.className = `btn ${action==='block'?'btn-rd':action==='suspend'?'btn btn-ghost':'btn-p'}`;
+  btn.textContent = titles[action];
+  document.getElementById('modalAct').classList.add('open');
+}
+
+document.getElementById('modalConfirm').onclick = async () => {
+  const reason = document.getElementById('modalReason').value;
+  closeModal();
+  try {
+    const r = await masterApi(modalAction, { key: modalKey, reason });
+    if(r.ok) {
+      toast(r.message||'Acción aplicada ✓','ok');
+      if(r.perpetualKey) toast(`PerpetualKey: ${r.perpetualKey}`,'in',8000);
+      loadLicencias();
+    } else toast('Error: '+r.error,'er');
+  } catch(e){ toast('Error de conexión','er'); }
+};
+
+function closeModal() { document.getElementById('modalAct').classList.remove('open'); }
+document.getElementById('modalAct').addEventListener('click',e=>{if(e.target.id==='modalAct')closeModal();});
+
+// ── LOG ───────────────────────────────────────────────────
+async function loadLog() {
+  try {
+    const r = await masterApi('log');
+    const el = document.getElementById('logList');
+    if(!r.ok||!r.data?.length){
+      el.innerHTML='<div style="padding:24px;text-align:center;color:var(--m)">Sin eventos registrados</div>';
+      return;
+    }
+    const evtClass = e => {
+      if(e.includes('BLOQ')||e.includes('VENCID')) return 'log-err';
+      if(e.includes('GRACIA')||e.includes('SUSPEN')) return 'log-warn';
+      if(e.includes('OK')||e.includes('PERPETUO')||e.includes('CREADA')) return 'log-ok';
+      return 'log-info';
+    };
+    el.innerHTML = r.data.reverse().slice(0,200).map(x=>`
+      <div class="log-item">
+        <div class="log-time">${fDate(x.Timestamp)}</div>
+        <div>
+          <div class="log-evt ${evtClass(x.Evento)}">${x.Evento}</div>
+          <div class="log-det">${x.Cliente||''} · ${x.LicenseKey||''} ${x.Detalle?'· '+x.Detalle:''}</div>
+        </div>
+      </div>`).join('');
+  } catch(e){ toast('Error al cargar log','er'); }
+}
+
+// ── FORMAT ────────────────────────────────────────────────
+const fDate = d => { try{return new Date(d).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}catch{return d||'—'}};
+function badge(e) {
+  const m={'ACTIVA':'bA','SUSPENDIDA':'bS','VENCIDA':'bV','BLOQUEADA':'bB','PERPETUA':'bP','GRACIA':'bG'};
+  return `<span class="badge ${m[e]||'bB'}">${e}</span>`;
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.getElementById('dashDate').textContent = new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'});
+loadDash();
+</script>
+</body>
+</html>
