@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ServTrack — Panel Maestro de Licencias</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Azeret+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & TOKENS ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:    #04060f;
+  --s:     #080e1c;
+  --c:     #0c1422;
+  --c2:    #0f1929;
+  --b:     #162035;
+  --b2:    #1c2d47;
+  --ac:    #00d4ff;
+  --ac2:   #0099cc;
+  --gr:    #00e5a0;
+  --am:    #ffb83f;
+  --rd:    #ff5a5a;
+  --pu:    #b57bff;
+  --or:    #ff7b35;
+  --t:     #e8f0ff;
+  --m:     #4a6380;
+  --m2:    #2e4460;
+  --fn:    'Space Grotesk', sans-serif;
+  --mo:    'Azeret Mono', monospace;
+  --r:     10px;
+  --glow-ac: 0 0 20px rgba(0,212,255,.25);
+  --glow-gr: 0 0 20px rgba(0,229,160,.25);
+}
+html { font-size: 15px; }
+body {
+  font-family: var(--fn);
+  background: var(--bg);
+  color: var(--t);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+button { cursor: pointer; font-family: var(--fn); border: none; background: none; outline: none; }
+input, select, textarea { font-family: var(--fn); outline: none; -webkit-appearance: none; }
+
+/* ── NOISE OVERLAY ───────────────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: .4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── LAYOUT ──────────────────────────────────────────────── */
+.layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar {
+  width: 230px;
+  flex-shrink: 0;
+  background: var(--s);
+  border-right: 1px solid var(--b);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: -80px; left: -60px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(0,212,255,.06), transparent 70%);
+  pointer-events: none;
+}
+.logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--b);
+}
+.logo-mark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+.logo-hex {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--ac), var(--pu));
+  clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  flex-shrink: 0;
+}
+.logo-name {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--t);
+}
+.logo-tag {
+  font-family: var(--mo);
+  font-size: .62rem;
+  color: var(--m);
+  letter-spacing: .12em;
+  padding-left: 37px;
+}
+.nav-group { padding: 14px 0 0; flex: 1; overflow-y: auto; }
+.nav-label {
+  font-size: .58rem;
+  font-weight: 700;
+  color: var(--m2);
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  padding: 0 20px 8px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--m);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  position: relative;
+}
+.nav-item:hover { color: var(--t); background: rgba(255,255,255,.02); }
+.nav-item.active {
+  color: var(--ac);
+  border-left-color: var(--ac);
+  background: rgba(0,212,255,.06);
+}
+.nav-ico { font-size: .95rem; width: 18px; text-align: center; }
+.nav-badge {
+  margin-left: auto;
+  font-family: var(--mo);
+  font-size: .6rem;
+  font-weight: 700;
+  background: rgba(255,90,90,.15);
+  color: var(--rd);
+  padding: 2px 7px;
+  border-radius: 20px;
+}
+.sidebar-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--b);
+  font-size: .7rem;
+  color: var(--m2);
+  line-height: 1.6;
+}
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--gr);
+  border-radius: 50%;
+  margin-right: 5px;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── MAIN ────────────────────────────────────────────────── */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ──────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(4,6,15,.85);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--b);
+  padding: 0 28px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.crumb {
+  font-size: .78rem;
+  color: var(--m);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.crumb span { color: var(--t); font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.tb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+.tb-search input {
+  background: none;
+  border: none;
+  color: var(--t);
+  font-size: .8rem;
+  width: 180px;
+}
+.tb-search input::placeholder { color: var(--m); }
+.tb-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  background: var(--c);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--t);
+  transition: all .15s;
+}
+.tb-btn:hover { border-color: var(--b2); background: var(--c2); }
+.tb-btn.primary { background: rgba(0,212,255,.1); border-color: rgba(0,212,255,.3); color: var(--ac); }
+.tb-btn.primary:hover { background: rgba(0,212,255,.18); }
+
+/* ── PAGE ────────────────────────────────────────────────── */
+.page { display: none; padding: 28px; animation: fadeSlide .2s ease; }
+.page.active { display: block; }
+@keyframes fadeSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.page-header { margin-bottom: 24px; }
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin-bottom: 3px;
+}
+.page-sub { font-size: .82rem; color: var(--m); }
+
+/* ── STATS GRID ──────────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--c);
+  border: 1px solid var(--b);
+  border-radius: var(--r);
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s, transform .15s;
+}
+.stat-card:hover { border-color: var(--b2); transform: translateY(-1px); }
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+}
+.stat-card.total::after  { background: var(--ac); }
+.stat-card.activa::after { background: var(--gr); }
+.stat-card.susp::after   { background: var(--am); }
+.stat-card.venc::after   { background: var(--rd); }
+.stat-card.perp::after   { background: var(--pu); }
+.stat-ico { font-size: 1.1rem; margin-bottom: 8px; opacity: .8; }
+.stat-val { font-size: 1.8rem; font-weight: 700; line-height: 1; font-family: var(--mo); }
+.stat-card.total .stat-val  { color: var(--ac); }
+.stat-card.activa .stat-val { color: var(--gr); }
+.stat-card.susp .stat-val   { color: var(--am); }
+.stat-card.venc .stat-val   { color: var(--rd); }
+.stat-card.perp .stat-val   { color: var(--pu); }
+.stat-lbl { font-size: .65rem; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; color: var(--m); margin-top: 4px; }
+
+/* ── SECTION ─────────────────────────────────────────────── */
+.section {
+  background: var(--c);
+  border: 1px solid var(--b);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.section-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--b);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.section-title { font-size: .9rem; font-weight: 700; }
+.section-sub   { font-size: .72rem; color: var(--m); margin-top: 1px; }
+.section-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ── TABLE ───────────────────────────────────────────────── */
+.tbl-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 9px 14px;
+  text-align: left;
+  font-size: .63rem;
+  font-weight: 700;
+  color: var(--m);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  background: var(--s);
+  border-bottom: 1px solid var(--b);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 14px;
+  font-size: .8rem;
+  border-bottom: 1px solid rgba(22,32,53,.7);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,212,255,.02); }
+.mono { font-family: var(--mo); font-size: .73rem; color: var(--ac); cursor: pointer; }
+.mono:hover { color: #fff; }
+
+/* ── BADGES ──────────────────────────────────────────────── */
+.badge {
+  font-size: .58rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  white-space: nowrap;
+  display: inline-block;
+}
+.bA { background: rgba(0,229,160,.1);  color: var(--gr); border: 1px solid rgba(0,229,160,.2); }
+.bS { background: rgba(255,184,63,.1); color: var(--am); border: 1px solid rgba(255,184,63,.2); }
+.bV { background: rgba(255,90,90,.1);  color: var(--rd); border: 1px solid rgba(255,90,90,.2); }
+.bB { background: rgba(74,99,128,.1);  color: var(--m);  border: 1px solid rgba(74,99,128,.2); }
+.bP { background: rgba(181,123,255,.1);color: var(--pu); border: 1px solid rgba(181,123,255,.2); }
+.bG { background: rgba(255,123,53,.1); color: var(--or); border: 1px solid rgba(255,123,53,.2); }
+
+/* ── ACTION BUTTONS ──────────────────────────────────────── */
+.acts { display: flex; gap: 4px; flex-wrap: wrap; }
+.ab {
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: .67rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all .15s;
+  font-family: var(--fn);
+}
+.ab:active { transform: scale(.93); }
+.ab-g  { background: rgba(0,229,160,.1);  color: var(--gr); border-color: rgba(0,229,160,.2); }
+.ab-y  { background: rgba(255,184,63,.1); color: var(--am); border-color: rgba(255,184,63,.2); }
+.ab-r  { background: rgba(255,90,90,.1);  color: var(--rd); border-color: rgba(255,90,90,.2); }
+.ab-p  { background: rgba(181,123,255,.1);color: var(--pu); border-color: rgba(181,123,255,.2); }
+.ab-ac { background: rgba(0,212,255,.1);  color: var(--ac); border-color: rgba(0,212,255,.2); }
+.ab:hover { filter: brightness(1.2); }
+
+/* ── FORM ────────────────────────────────────────────────── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-grid.full { grid-template-columns: 1fr; }
+.fg { display: flex; flex-direction: column; gap: 5px; }
+.fg.span2 { grid-column: span 2; }
+.fg.span3 { grid-column: span 3; }
+.fl {
+  font-size: .63rem;
+  font-weight: 700;
+  color: var(--m);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+.fl .req { color: var(--rd); margin-left: 2px; }
+.fi, .fsl, .fta {
+  background: var(--s);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--t);
+  font-size: .85rem;
+  transition: border-color .15s;
+}
+.fi:focus, .fsl:focus, .fta:focus { border-color: var(--ac); }
+.fsl option { background: var(--s); }
+.fta { resize: vertical; min-height: 70px; line-height: 1.5; }
+.fi.mono-field { font-family: var(--mo); letter-spacing: .05em; }
+
+/* ── BUTTONS ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: .83rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: var(--fn);
+  transition: all .15s;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary { background: var(--ac); color: #04060f; }
+.btn-primary:hover { background: #26c4ec; }
+.btn-success { background: var(--gr); color: #04060f; }
+.btn-ghost { background: var(--c2); border: 1px solid var(--b); color: var(--t); }
+.btn-ghost:hover { border-color: var(--b2); }
+.btn-danger { background: rgba(255,90,90,.12); border: 1px solid rgba(255,90,90,.3); color: var(--rd); }
+.btn-purple { background: rgba(181,123,255,.12); border: 1px solid rgba(181,123,255,.3); color: var(--pu); }
+.btn-sm { padding: 6px 12px; font-size: .76rem; }
+
+/* ── KEY RESULT BOX ─────────────────────────────────────── */
+.key-result {
+  background: var(--s);
+  border: 1px solid var(--b2);
+  border-radius: var(--r);
+  padding: 18px;
+  margin-top: 20px;
+  display: none;
+  animation: fadeSlide .3s ease;
+}
+.key-result.show { display: block; }
+.key-result-title { font-size: .68rem; font-weight: 700; color: var(--m); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+.key-copy {
+  font-family: var(--mo);
+  font-size: .95rem;
+  color: var(--ac);
+  background: rgba(0,212,255,.06);
+  border: 1px solid rgba(0,212,255,.2);
+  padding: 11px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  word-break: break-all;
+  transition: background .15s;
+}
+.key-copy:hover { background: rgba(0,212,255,.12); }
+.perp-key {
+  font-family: var(--mo);
+  font-size: .88rem;
+  color: var(--pu);
+  background: rgba(181,123,255,.06);
+  border: 1px solid rgba(181,123,255,.2);
+  padding: 11px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  word-break: break-all;
+  margin-top: 10px;
+}
+
+/* ── LOG ─────────────────────────────────────────────────── */
+.log-list { max-height: 580px; overflow-y: auto; }
+.log-row {
+  display: flex;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid rgba(22,32,53,.6);
+  align-items: flex-start;
+  transition: background .1s;
+}
+.log-row:hover { background: rgba(0,212,255,.02); }
+.log-row:last-child { border-bottom: none; }
+.log-time { font-family: var(--mo); font-size: .65rem; color: var(--m); white-space: nowrap; padding-top: 2px; min-width: 90px; }
+.log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.log-content { flex: 1; min-width: 0; }
+.log-evt { font-size: .78rem; font-weight: 600; }
+.log-det { font-size: .72rem; color: var(--m); margin-top: 2px; }
+.lg-ok  { color: var(--gr); } .lg-ok .log-dot  { background: var(--gr); }
+.lg-warn{ color: var(--am); } .lg-warn .log-dot { background: var(--am); }
+.lg-err { color: var(--rd); } .lg-err .log-dot  { background: var(--rd); }
+.lg-inf { color: var(--ac); } .lg-inf .log-dot  { background: var(--ac); }
+.lg-pur { color: var(--pu); } .lg-pur .log-dot  { background: var(--pu); }
+
+/* ── DOCS ────────────────────────────────────────────────── */
+.doc-card {
+  background: var(--c);
+  border: 1px solid var(--b);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 14px;
+}
+.doc-title { font-size: .88rem; font-weight: 700; margin-bottom: 12px; }
+.doc-p { font-size: .82rem; line-height: 1.8; color: var(--t); }
+.doc-p b { color: var(--ac); }
+.doc-code {
+  background: var(--s);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: var(--mo);
+  font-size: .72rem;
+  color: var(--ac);
+  line-height: 1.9;
+  overflow-x: auto;
+  margin-top: 10px;
+}
+.status-table { font-size: .8rem; }
+.status-table td { padding: 7px 12px; }
+.status-table tr:not(:last-child) td { border-bottom: 1px solid var(--b); }
+
+/* ── MODAL ───────────────────────────────────────────────── */
+.modal-ov {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  backdrop-filter: blur(5px);
+  z-index: 600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-ov.open { display: flex; }
+.modal {
+  background: var(--c);
+  border: 1px solid var(--b2);
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  animation: popIn .2s ease;
+}
+@keyframes popIn { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
+.modal-title { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+.modal-sub { font-size: .8rem; color: var(--m); margin-bottom: 18px; line-height: 1.6; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+#toasts {
+  position: fixed; top: 16px; right: 16px;
+  z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  padding: 10px 16px;
+  border-radius: 9px;
+  font-size: .8rem;
+  font-weight: 600;
+  min-width: 220px;
+  animation: toastIn .2s ease;
+  pointer-events: all;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@keyframes toastIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+.t-ok  { background: #051f0f; border: 1px solid rgba(0,229,160,.4); color: var(--gr); }
+.t-er  { background: #1a0808; border: 1px solid rgba(255,90,90,.4); color: var(--rd); }
+.t-in  { background: #050f1f; border: 1px solid rgba(0,212,255,.4); color: var(--ac); }
+
+/* ── SEARCH BAR ──────────────────────────────────────────── */
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--s);
+  border: 1px solid var(--b);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+}
+.search-row input { background: none; border: none; color: var(--t); font-size: .85rem; flex: 1; }
+.search-row input::placeholder { color: var(--m); }
+
+/* ── EMPTY ───────────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--m); }
+.empty-ico { font-size: 2.5rem; margin-bottom: 10px; opacity: .4; }
+.empty-msg { font-size: .85rem; }
+
+/* ── ALERT BOX ───────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: 9px;
+  font-size: .8rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.alert-warn { background: rgba(255,184,63,.08); border: 1px solid rgba(255,184,63,.25); color: var(--am); }
+.alert-info { background: rgba(0,212,255,.07);  border: 1px solid rgba(0,212,255,.2);  color: var(--ac); }
+
+/* ── DAYS BADGE ──────────────────────────────────────────── */
+.days-badge {
+  font-family: var(--mo);
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.days-critical { background: rgba(255,90,90,.15);   color: var(--rd); }
+.days-warn     { background: rgba(255,184,63,.15);  color: var(--am); }
+.days-ok       { background: rgba(0,229,160,.12);   color: var(--gr); }
+
+/* ── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--s); }
+::-webkit-scrollbar-thumb { background: var(--b2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--m2); }
+</style>
+</head>
+<body>
+
+<div id="toasts"></div>
+
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">
+      <div class="logo-hex"></div>
+      <div class="logo-name">ServTrack</div>
+    </div>
+    <div class="logo-tag">PANEL MAESTRO v2.0</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-label">Principal</div>
+    <div class="nav-item active" data-page="dash">
+      <span class="nav-ico">📊</span>Dashboard
+    </div>
+    <div class="nav-item" data-page="licencias">
+      <span class="nav-ico">🔑</span>Licencias
+      <span class="nav-badge" id="navBadgeVenc" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-page="nueva">
+      <span class="nav-ico">➕</span>Nueva Licencia
+    </div>
+
+    <div class="nav-label" style="margin-top:14px">Sistema</div>
+    <div class="nav-item" data-page="log">
+      <span class="nav-ico">📜</span>Eventos
+    </div>
+    <div class="nav-item" data-page="docs">
+      <span class="nav-ico">📖</span>Documentación
+    </div>
+  </div>
+
+  <div class="sidebar-foot">
+    <span class="status-dot"></span>Sistema activo<br>
+    <span style="font-family:var(--mo);font-size:.6rem">Panel Maestro privado</span>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="crumb">Panel / <span id="topCrumb">Dashboard</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="tb-search" id="globalSearch" style="display:none">
+        <span style="color:var(--m);font-size:.85rem">🔍</span>
+        <input type="text" id="licSearchInput" placeholder="Buscar cliente, clave..." oninput="filterLic(this.value)">
+      </div>
+      <button class="tb-btn" onclick="refreshCurrent()">↻ Refrescar</button>
+      <button class="tb-btn primary" onclick="showPage('nueva')">➕ Nueva Licencia</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PAGE: DASHBOARD
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="page active" id="page-dash">
+    <div class="page-header">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="dashDate">—</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card total">
+        <div class="stat-ico">🔑</div>
+        <div class="stat-val" id="dT">—</div>
+        <div class="stat-lbl">Total Licencias</div>
+      </div>
+      <div class="stat-card activa">
+        <div class="stat-ico">✅</div>
+        <div class="stat-val" id="dA">—</div>
+        <div class="stat-lbl">Activas</div>
+      </div>
+      <div class="stat-card susp">
+        <div class="stat-ico">⏸</div>
+        <div class="stat-val" id="dS">—</div>
+        <div class="stat-lbl">Suspendidas</div>
+      </div>
+      <div class="stat-card venc">
+        <div class="stat-ico">⏰</div>
+        <div class="stat-val" id="dV">—</div>
+        <div class="stat-lbl">Vencidas</div>
+      </div>
+      <div class="stat-card perp">
+        <div class="stat-ico">♾️</div>
+        <div class="stat-val" id="dP">—</div>
+        <div class="stat-lbl">Perpetuas</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">⚠️ Próximas a vencer</div>
+            <div class="section-sub">Licencias que vencen en los próximos 7 días</div>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Cliente</th><th>Plan</th><th>Vence</th><th>Días</th>
+          </tr></thead>
+          <tbody id="dashProximas"></tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <div>
+            <div class="section-title">📡 Actividad Reciente</div>
+            <div class="section-sub">Últimas verificaciones registradas</div>
+          </div>
+        </div>
+        <div id="dashActivity" class="log-list" style="max-height:280px"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PAGE: LICENCIAS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-licencias">
+    <div class="page-header">
+      <div class="page-title">Licencias</div>
+      <div class="page-sub">Gestiona todas las instalaciones del sistema.</div>
+    </div>
+
+    <div class="search-row">
+      <span style="color:var(--m)">🔍</span>
+      <input type="text" id="licSearch" placeholder="Buscar por cliente, email o clave de licencia..." oninput="filterLic(this.value)">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="ab ab-ac active-filter" data-f="ALL" onclick="setFilter(this,'ALL')">Todas</button>
+      <button class="ab ab-g" data-f="ACTIVA" onclick="setFilter(this,'ACTIVA')">✅ Activas</button>
+      <button class="ab ab-y" data-f="SUSPENDIDA" onclick="setFilter(this,'SUSPENDIDA')">⏸ Suspendidas</button>
+      <button class="ab ab-r" data-f="VENCIDA" onclick="setFilter(this,'VENCIDA')">⏰ Vencidas</button>
+      <button class="ab ab-p" data-f="PERPETUA" onclick="setFilter(this,'PERPETUA')">♾️ Perpetuas</button>
+    </div>
+
+    <div class="section">
+      <div class="tbl-scroll">
+        <table>
+          <thead><tr>
+            <th>Clave de Licencia</th>
+            <th>Cliente</th>
+            <th>Plan</th>
+            <th>Estado</th>
+            <th>Vence</th>
+            <th>Última Verif.</th>
+            <th>Acciones</th>
+          </tr></thead>
+          <tbody id="licTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PAGE: NUEVA LICENCIA
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-nueva">
+    <div class="page-header">
+      <div class="page-title">Nueva Licencia</div>
+      <div class="page-sub">Genera una licencia para un nuevo cliente.</div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">📋 Datos del Cliente</div>
+        </div>
+        <div style="padding:20px">
+          <div class="form-grid">
+            <div class="fg span2">
+              <label class="fl">Nombre / Negocio <span class="req">*</span></label>
+              <input class="fi" id="f_client" placeholder="Taller Electrónico García">
+            </div>
+            <div class="fg">
+              <label class="fl">Email</label>
+              <input class="fi" id="f_email" type="email" placeholder="cliente@mail.com">
+            </div>
+            <div class="fg">
+              <label class="fl">Teléfono</label>
+              <input class="fi" id="f_phone" type="tel" placeholder="5512345678">
+            </div>
+            <div class="fg">
+              <label class="fl">Plan <span class="req">*</span></label>
+              <select class="fsl" id="f_plan" onchange="onPlanChange()">
+                <option value="MENSUAL">📅 Mensual</option>
+                <option value="ANUAL">📆 Anual</option>
+                <option value="PERPETUO">♾️ Perpetuo</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Precio ($)</label>
+              <input class="fi" id="f_price" type="number" placeholder="0.00" min="0">
+            </div>
+            <div class="fg" id="graceField">
+              <label class="fl">Días de gracia</label>
+              <input class="fi" id="f_grace" type="number" value="3" min="0" max="30">
+            </div>
+            <div class="fg">
+              <label class="fl">Notas internas</label>
+              <textarea class="fta" id="f_notes" rows="2" placeholder="Info adicional..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px">
+            <button class="btn btn-primary" onclick="crearLicencia()" style="width:100%">
+              🔑 Generar Licencia
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section">
+          <div class="section-head">
+            <div class="section-title">ℹ️ Resumen del Plan</div>
+          </div>
+          <div style="padding:16px;font-size:.82rem;line-height:1.9;color:var(--m)" id="planInfo">
+            Selecciona un plan para ver el resumen.
+          </div>
+        </div>
+
+        <div class="key-result" id="resultBox">
+          <div class="key-result-title">✅ Licencia generada — Entrega al cliente:</div>
+          <div class="key-copy" id="rKey" onclick="copyText(this.textContent)" title="Clic para copiar"></div>
+          <div id="rPerpBox" style="display:none">
+            <div class="key-result-title" style="margin-top:14px">♾️ Llave Perpetua (guarda esta para modo offline):</div>
+            <div class="perp-key" id="rPerpKey" onclick="copyText(this.textContent)" title="Clic para copiar"></div>
+          </div>
+          <div style="font-size:.72rem;color:var(--m);margin-top:10px">💡 Haz clic en las claves para copiarlas</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PAGE: LOG
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-log">
+    <div class="page-header">
+      <div class="page-title">Registro de Eventos</div>
+      <div class="page-sub">Historial completo de accesos, verificaciones y cambios de estado.</div>
+    </div>
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">📜 Log del Sistema</div>
+        <div class="section-actions">
+          <span style="font-size:.72rem;color:var(--m)" id="logCount"></span>
+        </div>
+      </div>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PAGE: DOCS
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-docs">
+    <div class="page-header">
+      <div class="page-title">Documentación</div>
+      <div class="page-sub">Referencia técnica del sistema de licencias ServTrack.</div>
+    </div>
+
+    <div style="max-width:740px">
+      <div class="doc-card">
+        <div class="doc-title">🔄 Flujo de verificación</div>
+        <div class="doc-p">
+          <b>1. Inicio del cliente</b> → verifica contra este servidor cada 24h.<br>
+          <b>2. Con conexión</b> → respuesta en tiempo real (ACTIVA / SUSPENDIDA / VENCIDA / BLOQUEADA).<br>
+          <b>3. Sin internet</b> → usa caché local (válido 72h desde última verificación exitosa).<br>
+          <b>4. Caché expirado + sin conexión</b> → bloqueo por CACHE_EXPIRED.<br>
+          <b>5. Licencia PERPETUA</b> → activada con PerpetualKey, nunca más necesita servidor.
+        </div>
+      </div>
+
+      <div class="doc-card">
+        <div class="doc-title">📋 Estados de licencia</div>
+        <table class="status-table" style="width:100%">
+          <tr><td><span class="badge bA">ACTIVA</span></td><td>Funcionamiento normal. Puede acceder a la app.</td></tr>
+          <tr><td><span class="badge bS">SUSPENDIDA</span></td><td>Bloqueada por falta de pago. Muestra mensaje al cliente.</td></tr>
+          <tr><td><span class="badge bV">VENCIDA</span></td><td>Expiró el período + días de gracia. Auto-marcada por CRON diario.</td></tr>
+          <tr><td><span class="badge bB">BLOQUEADA</span></td><td>Bloqueo total inmediato sin mensaje (uso: fraude, disputa).</td></tr>
+          <tr><td><span class="badge bP">PERPETUA</span></td><td>Sin vencimiento. Puede operar offline con PerpetualKey.</td></tr>
+          <tr><td><span class="badge bG">GRACIA</span></td><td>Período de gracia activo. Acceso con advertencia de renovación.</td></tr>
+        </table>
+      </div>
+
+      <div class="doc-card">
+        <div class="doc-title">⚙️ Endpoints de la API</div>
+        <div class="doc-code">
+GET ?action=verify&key=SRVT-XXXX...&domain=X&fingerprint=X   → Verificar (público)<br>
+GET ?action=list&token=TU_TOKEN                               → Listar licencias<br>
+GET ?action=create&token=T&client=X&plan=MENSUAL              → Crear licencia<br>
+GET ?action=suspend&key=X&token=T&reason=Y                    → Suspender<br>
+GET ?action=activate&key=X&token=T                            → Reactivar<br>
+GET ?action=block&key=X&token=T                               → Bloqueo total<br>
+GET ?action=mkperp&key=X&token=T                              → Convertir a perpetua<br>
+GET ?action=panel&token=T                                     → Panel HTML (este)
+        </div>
+      </div>
+
+      <div class="doc-card">
+        <div class="doc-title">🔧 Setup del panel en Apps Script</div>
+        <div class="doc-p">
+          <b>1.</b> Crea un Google Spreadsheet vacío (tu panel maestro).<br>
+          <b>2.</b> Extensiones → Apps Script → pega <code style="color:var(--ac)">LicenseMaster.gs</code>.<br>
+          <b>3.</b> Cambia <code style="color:var(--am)">MASTER_SECRET</code> y <code style="color:var(--am)">ADMIN_TOKEN</code> por valores únicos.<br>
+          <b>4.</b> Ejecuta <code style="color:var(--ac)">setupMaster()</code> una sola vez.<br>
+          <b>5.</b> Implementa como Web App → Ejecutar como: Yo / Acceso: Cualquiera.<br>
+          <b>6.</b> La URL generada es tu <code style="color:var(--ac)">LICENSE_SERVER_URL</code>.<br>
+          <b>7.</b> Instala trigger diario: ejecuta <code style="color:var(--ac)">installDailyTrigger()</code>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .main -->
+</div><!-- .layout -->
+
+<!-- ── MODAL CONFIRMAR ACCIÓN ── -->
+<div class="modal-ov" id="modalAct">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Confirmar acción</div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div class="fg">
+      <label class="fl">Razón / Nota</label>
+      <input class="fi" id="modalReason" placeholder="Ej: Pago pendiente, fraude detectado...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-sm" id="modalConfirmBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DEMO DATA — Simula la hoja de Google Sheets
+// En producción, las llamadas van por google.script.run → masterCall()
+// ══════════════════════════════════════════════════════════════
+const now = new Date();
+const days = d => new Date(now.getTime() + d * 86400000).toISOString();
+
+let LICENSES = [
+  { LicenseKey:'SRVT-A1B2-C3D4-E5F6-G7H8', Cliente:'Taller García Electrónica', Email:'garcia@taller.mx', Telefono:'5512345678', Plan:'MENSUAL', Precio:'350', Estado:'ACTIVA', FechaInicio: days(-20), FechaVence: days(5), DiasGracia:'3', Notas:'', PerpetualKey:'', Instalaciones:'47', UltimaVerif: days(-1) },
+  { LicenseKey:'SRVT-B2C3-D4E5-F6G7-H8I9', Cliente:'ServiCelular Ramos', Email:'ramos@servicel.mx', Telefono:'5598765432', Plan:'MENSUAL', Precio:'350', Estado:'ACTIVA', FechaInicio: days(-10), FechaVence: days(20), DiasGracia:'3', Notas:'', PerpetualKey:'', Instalaciones:'23', UltimaVerif: days(0) },
+  { LicenseKey:'SRVT-C3D4-E5F6-G7H8-I9J0', Cliente:'TechFix Morelia', Email:'techfix@morelia.mx', Telefono:'4431234567', Plan:'ANUAL', Precio:'2800', Estado:'ACTIVA', FechaInicio: days(-60), FechaVence: days(305), DiasGracia:'7', Notas:'Cliente VIP', PerpetualKey:'', Instalaciones:'88', UltimaVerif: days(0) },
+  { LicenseKey:'SRVT-D4E5-F6G7-H8I9-J0K1', Cliente:'Electrónica del Norte', Email:'norte@electronica.mx', Telefono:'8111234567', Plan:'MENSUAL', Precio:'350', Estado:'SUSPENDIDA', FechaInicio: days(-45), FechaVence: days(-5), DiasGracia:'3', Notas:'Suspendido por no pago', PerpetualKey:'', Instalaciones:'31', UltimaVerif: days(-7) },
+  { LicenseKey:'SRVT-E5F6-G7H8-I9J0-K1L2', Cliente:'RepaTech Guadalajara', Email:'repatech@gdl.mx', Telefono:'3319876543', Plan:'MENSUAL', Precio:'350', Estado:'VENCIDA', FechaInicio: days(-65), FechaVence: days(-35), DiasGracia:'3', Notas:'', PerpetualKey:'', Instalaciones:'12', UltimaVerif: days(-40) },
+  { LicenseKey:'SRVT-F6G7-H8I9-J0K1-L2M3', Cliente:'SmartRepair CDMX', Email:'smart@repair.mx', Telefono:'5556789012', Plan:'PERPETUO', Precio:'8500', Estado:'PERPETUA', FechaInicio: days(-180), FechaVence: '', DiasGracia:'0', Notas:'Pago único completo', PerpetualKey:'PERP-AB12-CD34-EF5678', Instalaciones:'156', UltimaVerif: days(-2) },
+  { LicenseKey:'SRVT-G7H8-I9J0-K1L2-M3N4', Cliente:'Celulares Express QRO', Email:'express@celqro.mx', Telefono:'4422345678', Plan:'ANUAL', Precio:'2800', Estado:'ACTIVA', FechaInicio: days(-5), FechaVence: days(360), DiasGracia:'7', Notas:'', PerpetualKey:'', Instalaciones:'8', UltimaVerif: days(0) },
+  { LicenseKey:'SRVT-H8I9-J0K1-L2M3-N4O5', Cliente:'iService Puebla', Email:'iservice@puebla.mx', Telefono:'2221234567', Plan:'MENSUAL', Precio:'350', Estado:'ACTIVA', FechaInicio: days(-25), FechaVence: days(3), DiasGracia:'3', Notas:'Renovación pendiente', PerpetualKey:'', Instalaciones:'62', UltimaVerif: days(0) },
+];
+
+let EVENTS = [
+  { Timestamp: days(0),   LicenseKey:'SRVT-G7H8-I9J0-K1L2-M3N4', Cliente:'Celulares Express QRO', Evento:'ACCESO_OK',         IP:'',  Detalle:'Días restantes: 360' },
+  { Timestamp: days(0),   LicenseKey:'SRVT-B2C3-D4E5-F6G7-H8I9', Cliente:'ServiCelular Ramos',    Evento:'ACCESO_OK',         IP:'',  Detalle:'Días restantes: 20' },
+  { Timestamp: days(0),   LicenseKey:'SRVT-H8I9-J0K1-L2M3-N4O5', Cliente:'iService Puebla',       Evento:'ACCESO_OK',         IP:'',  Detalle:'Días restantes: 3' },
+  { Timestamp: days(-1),  LicenseKey:'SRVT-A1B2-C3D4-E5F6-G7H8', Cliente:'Taller García Electrónica', Evento:'ACCESO_OK',    IP:'',  Detalle:'Días restantes: 6' },
+  { Timestamp: days(-1),  LicenseKey:'SRVT-F6G7-H8I9-J0K1-L2M3', Cliente:'SmartRepair CDMX',      Evento:'ACCESO_PERPETUO',   IP:'',  Detalle:'' },
+  { Timestamp: days(-2),  LicenseKey:'SRVT-D4E5-F6G7-H8I9-J0K1', Cliente:'Electrónica del Norte', Evento:'ACCESO_SUSPENDIDO', IP:'',  Detalle:'Estado: SUSPENDIDA' },
+  { Timestamp: days(-7),  LicenseKey:'SRVT-D4E5-F6G7-H8I9-J0K1', Cliente:'Electrónica del Norte', Evento:'ESTADO_SUSPENDIDA', IP:'',  Detalle:'Por no pago mensual' },
+  { Timestamp: days(-35), LicenseKey:'SRVT-E5F6-G7H8-I9J0-K1L2', Cliente:'RepaTech Guadalajara',  Evento:'LICENCIA_VENCIDA',  IP:'CRON', Detalle:'Auto-marcada por CRON' },
+  { Timestamp: days(-60), LicenseKey:'SRVT-C3D4-E5F6-G7H8-I9J0', Cliente:'TechFix Morelia',       Evento:'LICENCIA_CREADA',   IP:'',  Detalle:'Plan: ANUAL' },
+  { Timestamp: days(-180),LicenseKey:'SRVT-F6G7-H8I9-J0K1-L2M3', Cliente:'SmartRepair CDMX',      Evento:'CONVERTIDA_PERPETUA',IP:'', Detalle:'Llave maestra aplicada' },
+];
+
+let currentFilter = 'ALL';
+let modalAction = null;
+let modalKey = null;
+
+// ── API BRIDGE ────────────────────────────────────────────
+// En producción: reemplaza estas funciones por google.script.run calls
+function masterApi(action, params = {}) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      try {
+        resolve(handleAction(action, params));
+      } catch(e) {
+        resolve({ ok: false, error: e.message });
+      }
+    }, 280);
+  });
+}
+
+function handleAction(action, params) {
+  switch(action) {
+    case 'list': return { ok:true, data: LICENSES };
+    case 'log':  return { ok:true, data: EVENTS };
+    case 'create': return createLicenseLocal(params);
+    case 'activate':
+    case 'suspend':
+    case 'block':
+    case 'mkperp': return changeLicenseStatusLocal(action, params);
+    default: return { ok:false, error:'Acción desconocida' };
+  }
+}
+
+function createLicenseLocal(p) {
+  const key = `SRVT-${rnd()}-${rnd()}-${rnd()}-${rnd()}`;
+  const plan = p.plan || 'MENSUAL';
+  const status = plan === 'PERPETUO' ? 'PERPETUA' : 'ACTIVA';
+  let expiry = '';
+  if (plan === 'MENSUAL') expiry = days(30);
+  else if (plan === 'ANUAL') expiry = days(365);
+  const perpKey = plan === 'PERPETUO' ? `PERP-${rnd()}-${rnd()}-${rnd().padEnd(6,'X')}` : '';
+
+  const lic = {
+    LicenseKey: key, Cliente: p.client || '', Email: p.email || '',
+    Telefono: p.phone || '', Plan: plan, Precio: p.price || '',
+    Estado: status, FechaInicio: now.toISOString(), FechaVence: expiry,
+    DiasGracia: p.grace || '3', Notas: p.notes || '',
+    PerpetualKey: perpKey, Instalaciones: '0', UltimaVerif: ''
+  };
+  LICENSES.unshift(lic);
+  logEvent(key, p.client, 'LICENCIA_CREADA', '', `Plan: ${plan}`);
+  return { ok:true, key, status, plan, expiry, perpetualKey: perpKey };
+}
+
+function changeLicenseStatusLocal(action, { key, reason }) {
+  const lic = LICENSES.find(x => x.LicenseKey === key);
+  if (!lic) return { ok:false, error:'Clave no encontrada' };
+  const statusMap = { activate:'ACTIVA', suspend:'SUSPENDIDA', block:'BLOQUEADA', mkperp:'PERPETUA' };
+  const newStatus = statusMap[action];
+  lic.Estado = newStatus;
+  if (action === 'mkperp') {
+    lic.Plan = 'PERPETUO';
+    lic.FechaVence = '';
+    lic.PerpetualKey = `PERP-${rnd()}-${rnd()}-${rnd().padEnd(6,'X')}`;
+  }
+  if (reason) lic.Notas = (lic.Notas ? lic.Notas + '\n' : '') + `[${fDate(now)}] ${newStatus}: ${reason}`;
+  logEvent(key, lic.Cliente, `ESTADO_${newStatus}`, '', reason || '');
+  return { ok:true, key, newStatus, message:`Licencia ${newStatus}`, perpetualKey: lic.PerpetualKey };
+}
+
+function logEvent(key, client, event, ip, detail) {
+  EVENTS.unshift({ Timestamp: new Date().toISOString(), LicenseKey: key, Cliente: client, Evento: event, IP: ip || '', Detalle: detail || '' });
+}
+
+function rnd() { return Math.random().toString(36).toUpperCase().substr(2,4).padEnd(4,'0'); }
+
+// ── NAVIGATION ────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${id}`).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`)?.classList.add('active');
+  document.getElementById('topCrumb').textContent = {
+    dash:'Dashboard', licencias:'Licencias', nueva:'Nueva Licencia', log:'Eventos', docs:'Documentación'
+  }[id] || id;
+  document.getElementById('globalSearch').style.display = id === 'licencias' ? 'flex' : 'none';
+
+  if (id === 'dash')      loadDash();
+  if (id === 'licencias') loadLicencias();
+  if (id === 'log')       loadLog();
+}
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => showPage(el.dataset.page));
+});
+
+// ── TOAST ─────────────────────────────────────────────────
+function toast(msg, type = 'in', dur = 3500) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = `toast t-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), dur);
+}
+
+function copyText(txt) {
+  navigator.clipboard?.writeText(txt.trim()).then(() => toast('Copiado al portapapeles ✓', 'ok'));
+}
+
+// ── FORMAT ────────────────────────────────────────────────
+const fDate = d => {
+  try { return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return d || '—'; }
+};
+const fDateShort = d => {
+  try { return new Date(d).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }); }
+  catch { return d || '—'; }
+};
+const fTime = d => {
+  try { return new Date(d).toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' }); }
+  catch { return ''; }
+};
+
+function badge(e) {
+  const m = { ACTIVA:'bA', SUSPENDIDA:'bS', VENCIDA:'bV', BLOQUEADA:'bB', PERPETUA:'bP', GRACIA:'bG' };
+  return `<span class="badge ${m[e] || 'bB'}">${e}</span>`;
+}
+
+function daysLeft(fechaVence) {
+  if (!fechaVence) return null;
+  return Math.ceil((new Date(fechaVence) - now) / 86400000);
+}
+
+function daysBadge(dl) {
+  if (dl === null) return '♾️';
+  if (dl < 0)  return `<span class="days-badge days-critical">Vencido</span>`;
+  if (dl <= 3) return `<span class="days-badge days-critical">${dl}d</span>`;
+  if (dl <= 7) return `<span class="days-badge days-warn">${dl}d</span>`;
+  return `<span class="days-badge days-ok">${dl}d</span>`;
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+async function loadDash() {
+  document.getElementById('dashDate').textContent =
+    now.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  const r = await masterApi('list');
+  if (!r.ok) return;
+  const d = r.data;
+
+  document.getElementById('dT').textContent = d.length;
+  document.getElementById('dA').textContent = d.filter(x => x.Estado === 'ACTIVA').length;
+  document.getElementById('dS').textContent = d.filter(x => x.Estado === 'SUSPENDIDA').length;
+  document.getElementById('dV').textContent = d.filter(x => x.Estado === 'VENCIDA').length;
+  document.getElementById('dP').textContent = d.filter(x => x.Estado === 'PERPETUA').length;
+
+  // Vencimientos próximos
+  const prox = d.filter(x => {
+    if (!x.FechaVence || x.Estado === 'PERPETUA') return false;
+    const dl = daysLeft(x.FechaVence);
+    return dl !== null && dl >= -3 && dl <= 7;
+  }).sort((a, b) => new Date(a.FechaVence) - new Date(b.FechaVence));
+
+  const navBadge = document.getElementById('navBadgeVenc');
+  if (prox.length > 0) { navBadge.style.display = 'inline'; navBadge.textContent = prox.length; }
+  else navBadge.style.display = 'none';
+
+  document.getElementById('dashProximas').innerHTML = prox.length ?
+    prox.map(x => {
+      const dl = daysLeft(x.FechaVence);
+      return `<tr>
+        <td><b>${x.Cliente}</b><br><span style="color:var(--m);font-size:.7rem">${x.Email || ''}</span></td>
+        <td>${x.Plan}</td>
+        <td style="font-family:var(--mo);font-size:.75rem">${fDate(x.FechaVence)}</td>
+        <td>${daysBadge(dl)}</td>
+      </tr>`;
+    }).join('') :
+    `<tr><td colspan="4" class="empty-state" style="padding:20px">
+      <div class="empty-ico" style="font-size:1.5rem">🎉</div>
+      <div class="empty-msg">Sin vencimientos próximos</div>
+    </td></tr>`;
+
+  // Actividad reciente
+  const rLog = await masterApi('log');
+  const el = document.getElementById('dashActivity');
+  el.innerHTML = (rLog.data || []).slice(0, 12).map(x => logRowHtml(x)).join('');
+}
+
+// ── LICENCIAS ─────────────────────────────────────────────
+let allLicencias = [];
+
+async function loadLicencias() {
+  const r = await masterApi('list');
+  if (!r.ok) return toast('Error al cargar', 'er');
+  allLicencias = r.data;
+  renderLicTable(filterByStatus(allLicencias));
+}
+
+function filterByStatus(data) {
+  if (currentFilter === 'ALL') return data;
+  return data.filter(x => x.Estado === currentFilter);
+}
+
+function filterLic(q) {
+  const s = q.toLowerCase();
+  const filtered = filterByStatus(allLicencias).filter(x =>
+    String(x.Cliente).toLowerCase().includes(s) ||
+    String(x.Email).toLowerCase().includes(s) ||
+    String(x.LicenseKey).toLowerCase().includes(s)
+  );
+  renderLicTable(filtered);
+  // sync the hidden search bar on licencias page
+  document.getElementById('licSearch').value = q;
+}
+
+function setFilter(el, f) {
+  currentFilter = f;
+  document.querySelectorAll('[data-f]').forEach(b => b.style.fontWeight = '');
+  el.style.fontWeight = '700';
+  const q = document.getElementById('licSearch').value;
+  filterLic(q);
+}
+
+function renderLicTable(data) {
+  const tbody = document.getElementById('licTable');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-ico">🔍</div><div class="empty-msg">Sin resultados</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(x => {
+    const dl = x.Estado === 'PERPETUA' ? null : daysLeft(x.FechaVence);
+    return `<tr>
+      <td>
+        <span class="mono" onclick="copyText('${x.LicenseKey}')" title="Clic para copiar">
+          ${x.LicenseKey}
+        </span>
+      </td>
+      <td>
+        <div style="font-weight:600">${x.Cliente}</div>
+        <div style="font-size:.72rem;color:var(--m)">${x.Email || '—'} ${x.Telefono ? '· ' + x.Telefono : ''}</div>
+      </td>
+      <td>${x.Plan}</td>
+      <td>${badge(x.Estado)}</td>
+      <td>
+        ${x.Estado === 'PERPETUA' ? '<span style="color:var(--pu)">♾️ Perpetuo</span>' :
+          x.FechaVence ? `<div style="font-family:var(--mo);font-size:.74rem">${fDate(x.FechaVence)}</div><div style="margin-top:2px">${daysBadge(dl)}</div>` : '—'}
+      </td>
+      <td style="font-family:var(--mo);font-size:.7rem;color:var(--m)">
+        ${x.UltimaVerif ? fDate(x.UltimaVerif) + '<br>' + fTime(x.UltimaVerif) : '—'}
+        <div style="font-size:.65rem;margin-top:1px">${x.Instalaciones ? x.Instalaciones + ' verif.' : ''}</div>
+      </td>
+      <td>
+        <div class="acts">
+          ${x.Estado !== 'ACTIVA' && x.Estado !== 'PERPETUA' ?
+            `<button class="ab ab-g" onclick="doAction('activate','${x.LicenseKey}','${x.Cliente}')">✅ Activar</button>` : ''}
+          ${x.Estado === 'ACTIVA' ?
+            `<button class="ab ab-y" onclick="doAction('suspend','${x.LicenseKey}','${x.Cliente}')">⏸ Suspender</button>` : ''}
+          ${x.Estado !== 'BLOQUEADA' && x.Estado !== 'PERPETUA' ?
+            `<button class="ab ab-r" onclick="doAction('block','${x.LicenseKey}','${x.Cliente}')">🚫 Bloquear</button>` : ''}
+          ${x.Estado !== 'PERPETUA' ?
+            `<button class="ab ab-p" onclick="doAction('mkperp','${x.LicenseKey}','${x.Cliente}')">♾️</button>` :
+            `<span style="color:var(--pu);font-size:.72rem">♾️ Perpetua</span>`}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CREAR LICENCIA ────────────────────────────────────────
+function onPlanChange() {
+  const plan = document.getElementById('f_plan').value;
+  const gf = document.getElementById('graceField');
+  gf.style.opacity = plan === 'PERPETUO' ? '0.4' : '1';
+  const info = {
+    MENSUAL: `<b>📅 Mensual</b><br>Vence a 30 días.<br>Días de gracia configurables.<br>Renovación mensual requerida.`,
+    ANUAL:   `<b>📆 Anual</b><br>Vence a 365 días.<br>Mayor estabilidad para el cliente.<br>Días de gracia configurables.`,
+    PERPETUO:`<b>♾️ Perpetuo</b><br>Sin vencimiento.<br>Incluye PerpetualKey para modo offline.<br>Pago único. No requiere renovaciones.`
+  };
+  document.getElementById('planInfo').innerHTML = `<div style="color:var(--t)">${info[plan]}</div>`;
+}
+
+async function crearLicencia() {
+  const client = document.getElementById('f_client').value.trim();
+  const plan   = document.getElementById('f_plan').value;
+  if (!client) return toast('Ingresa el nombre del cliente', 'er');
+  try {
+    const r = await masterApi('create', {
+      client, plan,
+      email: document.getElementById('f_email').value.trim(),
+      phone: document.getElementById('f_phone').value.trim(),
+      price: document.getElementById('f_price').value,
+      grace: document.getElementById('f_grace').value || 3,
+      notes: document.getElementById('f_notes').value.trim()
+    });
+    if (!r.ok) return toast('Error: ' + r.error, 'er');
+    toast(`✅ Licencia creada: ${r.key}`, 'ok', 6000);
+    const box = document.getElementById('resultBox');
+    box.classList.add('show');
+    document.getElementById('rKey').textContent = r.key;
+    const perpBox = document.getElementById('rPerpBox');
+    if (r.perpetualKey) {
+      perpBox.style.display = 'block';
+      document.getElementById('rPerpKey').textContent = r.perpetualKey;
+    } else {
+      perpBox.style.display = 'none';
+    }
+    // Clear form
+    ['f_client','f_email','f_phone','f_price','f_notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f_grace').value = '3';
+    document.getElementById('f_plan').value = 'MENSUAL';
+  } catch(e) { toast('Error de conexión', 'er'); }
+}
+
+// ── ACCIONES ──────────────────────────────────────────────
+function doAction(action, key, client) {
+  modalKey = key;
+  modalAction = action;
+  const cfg = {
+    activate: { title: '✅ Activar Licencia',    sub: `Reactivar la licencia de <b>${client}</b>. El cliente podrá usar el sistema normalmente.`, btnClass: 'btn-success', btnLabel: '✅ Activar' },
+    suspend:  { title: '⏸ Suspender Licencia',  sub: `Suspender <b>${client}</b> por falta de pago. El cliente verá un mensaje pidiendo que contacte a su proveedor.`, btnClass: 'btn-ghost', btnLabel: '⏸ Suspender' },
+    block:    { title: '🚫 Bloquear Licencia',   sub: `BLOQUEAR completamente a <b>${client}</b>. Bloqueo inmediato sin mensaje. Úsalo para fraude o disputas graves.`, btnClass: 'btn-danger', btnLabel: '🚫 Bloquear' },
+    mkperp:   { title: '♾️ Convertir a Perpetua',sub: `Convertir a <b>${client}</b> a licencia PERPETUA. Se generará una PerpetualKey para desconectarse del servidor.`, btnClass: 'btn-purple', btnLabel: '♾️ Convertir' },
+  };
+  const c = cfg[action];
+  document.getElementById('modalTitle').textContent = c.title;
+  document.getElementById('modalSub').innerHTML = c.sub;
+  document.getElementById('modalReason').value = '';
+  const btn = document.getElementById('modalConfirmBtn');
+  btn.className = `btn btn-sm ${c.btnClass}`;
+  btn.textContent = c.btnLabel;
+  document.getElementById('modalAct').classList.add('open');
+}
+
+document.getElementById('modalConfirmBtn').onclick = async () => {
+  const reason = document.getElementById('modalReason').value;
+  closeModal();
+  try {
+    const r = await masterApi(modalAction, { key: modalKey, reason });
+    if (r.ok) {
+      toast(r.message || 'Acción aplicada ✓', 'ok');
+      if (r.perpetualKey) {
+        toast(`♾️ PerpetualKey: ${r.perpetualKey}`, 'in', 10000);
+      }
+      loadLicencias();
+      loadDash();
+    } else {
+      toast('Error: ' + r.error, 'er');
+    }
+  } catch(e) { toast('Error de conexión', 'er'); }
+};
+
+function closeModal() { document.getElementById('modalAct').classList.remove('open'); }
+document.getElementById('modalAct').addEventListener('click', e => { if (e.target.id === 'modalAct') closeModal(); });
+
+// ── LOG ───────────────────────────────────────────────────
+async function loadLog() {
+  const r = await masterApi('log');
+  const el = document.getElementById('logList');
+  const cnt = document.getElementById('logCount');
+  if (!r.ok || !r.data?.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-ico">📭</div><div class="empty-msg">Sin eventos</div></div>';
+    return;
+  }
+  const sorted = [...r.data].sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+  cnt.textContent = sorted.length + ' eventos';
+  el.innerHTML = sorted.slice(0, 300).map(x => logRowHtml(x)).join('');
+}
+
+function logRowHtml(x) {
+  const evtClass = e => {
+    if (e.includes('BLOQ') || e.includes('VENCID')) return 'lg-err';
+    if (e.includes('GRACIA') || e.includes('SUSPEN')) return 'lg-warn';
+    if (e.includes('OK') || e.includes('PERPETUO') || e.includes('CREADA') || e.includes('ACTIVAD')) return 'lg-ok';
+    if (e.includes('ESTADO') || e.includes('CONVERTIDA')) return 'lg-pur';
+    return 'lg-inf';
+  };
+  const cls = evtClass(x.Evento);
+  return `<div class="log-row ${cls}">
+    <div class="log-time">${fDateShort(x.Timestamp)}<br>${fTime(x.Timestamp)}</div>
+    <div class="log-dot"></div>
+    <div class="log-content">
+      <div class="log-evt">${x.Evento}</div>
+      <div class="log-det">${[x.Cliente, x.LicenseKey ? x.LicenseKey.substr(0,18)+'...' : '', x.Detalle].filter(Boolean).join(' · ')}</div>
+    </div>
+  </div>`;
+}
+
+// ── REFRESH ───────────────────────────────────────────────
+function refreshCurrent() {
+  const active = document.querySelector('.page.active')?.id;
+  if (active === 'page-dash')      loadDash();
+  if (active === 'page-licencias') loadLicencias();
+  if (active === 'page-log')       loadLog();
+  toast('↻ Datos actualizados', 'in', 2000);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+onPlanChange();
+loadDash();
+</script>
+</body>
+</html>
